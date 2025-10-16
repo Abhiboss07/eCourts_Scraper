@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Cases - eCourts Scraper</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --dark: #1f2937;
+            --gray: #6b7280;
+            --light-gray: #f3f4f6;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f9fafb;
+            color: var(--dark);
+        }
+
+        /* Navbar */
+        .navbar {
+            background: var(--white);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-menu a:hover {
+            color: var(--primary);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Search Section */
+        .search-section {
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .search-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .search-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .search-header p {
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+
+        .search-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1.25rem;
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .case-card {
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .case-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--white);
+            padding: 2rem;
+        }
+
+        .case-header h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .case-status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .case-body {
+            padding: 2rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-item {
+            padding: 1.5rem;
+            background: var(--light-gray);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .info-label {
+            font-size: 0.875rem;
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .parties-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .party-card {
+            padding: 1.5rem;
+            background: var(--light-gray);
+            border-radius: 12px;
+        }
+
+        .party-type {
+            font-size: 0.875rem;
+            color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .party-name {
+            font-size: 1.1rem;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--primary);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 1rem 0 1rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.4rem;
+            top: 1.5rem;
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50%;
+            border: 3px solid var(--white);
+            box-shadow: 0 0 0 3px var(--primary);
+        }
+
+        .timeline-date {
+            font-size: 0.875rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-content {
+            color: var(--dark);
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+        }
+
+        .btn-secondary:hover {
+            background: #059669;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid var(--success);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .search-section {
+                padding: 1.5rem;
+            }
+
+            .search-header h1 {
+                font-size: 2rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <i class="fas fa-gavel"></i>
+                <span>eCourts Scraper</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/search" class="active">Search</a></li>
+                <li><a href="/about">About</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-header">
+                <h1><i class="fas fa-search"></i> Search Case Details</h1>
+                <p>Enter CNR number to get comprehensive case information</p>
+            </div>
+
+            <form class="search-form" id="searchForm">
+                <div class="form-group">
+                    <label for="cnr">
+                        <i class="fas fa-file-alt"></i> CNR Number (16 digits)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="cnr" 
+                        class="form-input" 
+                        placeholder="e.g., MHAU019999992015"
+                        maxlength="16"
+                        required
+                    >
+                    <small style="color: var(--gray); margin-top: 0.5rem; display: block;">
+                        Enter the 16-digit Case Number Reference (CNR) to search
+                    </small>
+                </div>
+
+                <button type="submit" class="btn" id="searchBtn">
+                    <i class="fas fa-search"></i> Search Case
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <h3>Searching for case...</h3>
+            <p>Please wait while we fetch the case details</p>
+            <small style="color: var(--gray); margin-top: 1rem; display: block;">
+                ⚡ Automatic CAPTCHA solving in progress<br>
+                ⏱️ This usually takes 3-5 seconds
+            </small>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="results">
+            <!-- Results will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        const searchForm = document.getElementById('searchForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const searchBtn = document.getElementById('searchBtn');
+
+        // Check URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const cnrParam = urlParams.get('cnr');
+        if (cnrParam) {
+            document.getElementById('cnr').value = cnrParam;
+            searchForm.dispatchEvent(new Event('submit'));
+        }
+
+        searchForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const cnr = document.getElementById('cnr').value.trim();
+            
+            if (cnr.length !== 16) {
+                showError('Please enter a valid 16-digit CNR number');
+                return;
+            }
+
+            // Show loading
+            loading.classList.add('active');
+            results.classList.remove('active');
+            searchBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/search/cnr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cnr: cnr })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    displayResults(data.data);
+                } else {
+                    showError(data.error || 'Case not found');
+                }
+            } catch (error) {
+                showError('An error occurred while searching. Please try again.');
+                console.error(error);
+            } finally {
+                loading.classList.remove('active');
+                searchBtn.disabled = false;
+            }
+        });
+
+        function displayResults(caseData) {
+            results.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Case found successfully! Details displayed below.</span>
+                </div>
+
+                <div class="case-card">
+                    <div class="case-header">
+                        <h2><i class="fas fa-gavel"></i> Case Details</h2>
+                        <span class="case-status">
+                            <i class="fas fa-circle"></i> ${caseData.status || 'Active'}
+                        </span>
+                    </div>
+
+                    <div class="case-body">
+                        <!-- Basic Information -->
+                        <h3 class="section-title">
+                            <i class="fas fa-info-circle"></i> Basic Information
+                        </h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-hashtag"></i> CNR Number</div>
+                                <div class="info-value">${caseData.cnr_number || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-file"></i> Case Number</div>
+                                <div class="info-value">${caseData.case_number || 'N/A'}</div>
+                            </div>
+                            ${caseData.filing_number ? `
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-file-alt"></i> Filing Number</div>
+                                <div class="info-value">${caseData.filing_number}</div>
+                            </div>
+                            ` : ''}
+                            ${caseData.registration_number ? `
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-file-signature"></i> Registration Number</div>
+                                <div class="info-value">${caseData.registration_number}</div>
+                            </div>
+                            ` : ''}
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-tag"></i> Case Type</div>
+                                <div class="info-value">${caseData.case_type || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-calendar"></i> Filing Date</div>
+                                <div class="info-value">${caseData.filing_date || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-calendar-check"></i> Registration Date</div>
+                                <div class="info-value">${caseData.registration_date || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-calendar-alt"></i> First Hearing</div>
+                                <div class="info-value">${caseData.first_hearing_date || 'N/A'}</div>
+                            </div>
+                        </div>
+
+                        <!-- Court Information -->
+                        <h3 class="section-title">
+                            <i class="fas fa-landmark"></i> Court Information
+                        </h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-building"></i> Court Name</div>
+                                <div class="info-value">${caseData.court_name || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-door-open"></i> Court Number</div>
+                                <div class="info-value">${caseData.court_number || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-gavel"></i> Judge Name</div>
+                                <div class="info-value">${caseData.judge_name || 'N/A'}</div>
+                            </div>
+                            ${caseData.court_number_and_judge ? `
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-balance-scale"></i> Court Number & Judge</div>
+                                <div class="info-value">${caseData.court_number_and_judge}</div>
+                            </div>
+                            ` : ''}
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-map-marker-alt"></i> State</div>
+                                <div class="info-value">${caseData.state || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-map-pin"></i> District</div>
+                                <div class="info-value">${caseData.district || 'N/A'}</div>
+                            </div>
+                        </div>
+
+                        <!-- Parties Information -->
+                        <h3 class="section-title">
+                            <i class="fas fa-users"></i> Parties Involved
+                        </h3>
+                        <div class="parties-section">
+                            <div class="party-card">
+                                <div class="party-type"><i class="fas fa-user"></i> Petitioner</div>
+                                <div class="party-name">${caseData.petitioner_name || 'N/A'}</div>
+                                ${caseData.petitioner_advocate ? `<small style="color: var(--gray); margin-top: 0.5rem; display: block;"><i class="fas fa-user-tie"></i> Advocate: ${caseData.petitioner_advocate}</small>` : ''}
+                                ${caseData.petitioner_address ? `<small style="color: var(--gray); margin-top: 0.5rem; display: block;"><i class="fas fa-map-marker-alt"></i> Address: ${caseData.petitioner_address}</small>` : ''}
+                            </div>
+                            <div class="party-card">
+                                <div class="party-type"><i class="fas fa-user"></i> Respondent</div>
+                                <div class="party-name">${caseData.respondent_name || 'N/A'}</div>
+                                ${caseData.respondent_advocate ? `<small style="color: var(--gray); margin-top: 0.5rem; display: block;"><i class="fas fa-user-tie"></i> Advocate: ${caseData.respondent_advocate}</small>` : ''}
+                                ${caseData.respondent_address ? `<small style="color: var(--gray); margin-top: 0.5rem; display: block;"><i class="fas fa-map-marker-alt"></i> Address: ${caseData.respondent_address}</small>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Case Status -->
+                        <h3 class="section-title">
+                            <i class="fas fa-info-circle"></i> Case Status
+                        </h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-flag"></i> Current Status</div>
+                                <div class="info-value">${caseData.status || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-calendar-day"></i> Next Hearing</div>
+                                <div class="info-value" style="color: #e74c3c; font-weight: 600;">${caseData.next_hearing_date || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-layer-group"></i> Case Stage</div>
+                                <div class="info-value">${caseData.case_stage || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-balance-scale"></i> Decision</div>
+                                <div class="info-value">${caseData.decision || 'Pending'}</div>
+                            </div>
+                            ${caseData.disposal_nature ? `
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-gavel"></i> Disposal Nature</div>
+                                <div class="info-value">${caseData.disposal_nature}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Acts & Sections -->
+                        ${(caseData.acts || caseData.under_acts || caseData.under_sections) ? `
+                        <h3 class="section-title">
+                            <i class="fas fa-book"></i> Acts & Sections
+                        </h3>
+                        <div class="info-grid">
+                            ${caseData.acts ? `
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-book-open"></i> Acts & Sections</div>
+                                <div class="info-value">${caseData.acts}</div>
+                            </div>
+                            ` : ''}
+                            ${caseData.under_acts ? `
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-balance-scale"></i> Under Act(s)</div>
+                                <div class="info-value">${caseData.under_acts}</div>
+                            </div>
+                            ` : ''}
+                            ${caseData.under_sections ? `
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-paragraph"></i> Under Section(s)</div>
+                                <div class="info-value">${caseData.under_sections}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ` : ''}
+
+                        <!-- FIR Details -->
+                        ${(caseData.fir_number || caseData.police_station) ? `
+                        <h3 class="section-title">
+                            <i class="fas fa-shield-alt"></i> FIR Details
+                        </h3>
+                        <div class="info-grid">
+                            ${caseData.fir_number ? `
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-file-alt"></i> FIR Number</div>
+                                <div class="info-value">${caseData.fir_number}</div>
+                            </div>
+                            ` : ''}
+                            ${caseData.police_station ? `
+                            <div class="info-item">
+                                <div class="info-label"><i class="fas fa-building"></i> Police Station</div>
+                                <div class="info-value">${caseData.police_station}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ` : ''}
+
+                        ${caseData.case_history ? `
+                        <h3 class="section-title">
+                            <i class="fas fa-history"></i> Case History
+                        </h3>
+                        <div class="timeline">
+                            ${caseData.case_history.map(item => `
+                                <div class="timeline-item">
+                                    <div class="timeline-date">${item.date || 'N/A'}</div>
+                                    <div class="timeline-content">${item.description || 'N/A'}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+
+                        <!-- Actions -->
+                        <div class="actions">
+                            <button class="btn btn-secondary" onclick="window.print()">
+                                <i class="fas fa-print"></i> Print Details
+                            </button>
+                            <button class="btn" onclick="downloadJSON()">
+                                <i class="fas fa-download"></i> Download JSON
+                            </button>
+                            <button class="btn" onclick="location.reload()">
+                                <i class="fas fa-search"></i> New Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            results.classList.add('active');
+            results.scrollIntoView({ behavior: 'smooth' });
+
+            // Store data for download
+            window.currentCaseData = caseData;
+        }
+
+        function showError(message) {
+            results.innerHTML = `
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            results.classList.add('active');
+        }
+
+        function downloadJSON() {
+            if (window.currentCaseData) {
+                const dataStr = JSON.stringify(window.currentCaseData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `case_${window.currentCaseData.cnr_number || 'data'}.json`;
+                link.click();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+================================================================================
+FIELD MAPPING FIXED - DATA NOW IN CORRECT SECTIONS
+================================================================================
+
+PROBLEM: Parser was putting data in wrong fields due to broad label matching
+
+SOLUTION: Implemented precise label matching with priority order
+
+================================================================================
+WHAT WAS FIXED
+================================================================================
+
+Before:
+❌ Broad matching (e.g., any label with "court" → court_name)
+❌ Overlapping conditions
+❌ No priority order
+❌ Data going to wrong fields
+
+After:
+✅ Exact label matching (e.g., "court name" → court_name)
+✅ Priority order (specific before general)
+✅ Duplicate prevention (only fill if empty)
+✅ Data in correct fields
+
+================================================================================
+KEY IMPROVEMENTS
+================================================================================
+
+1. EXACT MATCHING
+   Before: if 'court' in label
+   After:  if label in ['court name', 'name of court', 'court']
+
+2. PRIORITY ORDER
+   - Advocate fields checked BEFORE party names
+   - Specific labels checked BEFORE general ones
+   - Prevents misclassification
+
+3. DUPLICATE PREVENTION
+   - Only fills field if currently empty
+   - Prevents overwriting correct data
+   - First match wins
+
+4. EMPTY VALUE SKIP
+   - Skips empty/null values
+   - Prevents filling fields with blank data
+
+================================================================================
+LABEL MAPPINGS
+================================================================================
+
+CNR Number:
+  Labels: 'cnr number', 'cnr no', 'cnr no.', 'cnr'
+  Field: cnr_number
+
+Case Number:
+  Labels: 'case number', 'case no', 'case no.', 'diary number'
+  Field: case_number
+
+Case Type:
+  Labels: 'case type', 'type of case'
+  Field: case_type
+
+Filing Date:
+  Labels: 'filing date', 'date of filing'
+  Field: filing_date
+
+Registration Date:
+  Labels: 'registration date', 'date of registration'
+  Field: registration_date
+
+First Hearing:
+  Labels: 'first hearing date', 'date of first hearing'
+  Field: first_hearing_date
+
+Next Hearing:
+  Labels: 'next hearing date', 'date of next hearing', 'next date'
+  Field: next_hearing_date
+
+Petitioner:
+  Labels: 'petitioner name', 'petitioner'
+  Field: petitioner_name
+
+Petitioner Advocate:
+  Labels: Any with 'petitioner' AND 'advocate'
+  Field: petitioner_advocate
+
+Respondent:
+  Labels: 'respondent name', 'respondent'
+  Field: respondent_name
+
+Respondent Advocate:
+  Labels: Any with 'respondent' AND 'advocate'
+  Field: respondent_advocate
+
+Court Name:
+  Labels: 'court name', 'name of court', 'court'
+  Field: court_name
+
+Court Number:
+  Labels: 'court number', 'court no', 'court no.'
+  Field: court_number
+
+Judge:
+  Labels: 'judge name', 'name of judge', 'judge', 'judicial officer'
+  Field: judge_name
+
+State:
+  Labels: 'state', 'state name'
+  Field: state
+
+District:
+  Labels: 'district', 'district name'
+  Field: district
+
+Status:
+  Labels: 'case status', 'status'
+  Field: status
+
+Stage:
+  Labels: 'case stage', 'stage', 'stage of case'
+  Field: case_stage
+
+Decision:
+  Labels: 'decision', 'disposal', 'nature of disposal'
+  Field: decision
+
+Acts:
+  Labels: Labels with 'act' AND 'section', 'under act(s)', 'acts'
+  Field: acts
+
+================================================================================
+HOW IT WORKS NOW
+================================================================================
+
+1. Read table row
+2. Get label (first cell) and value (second cell)
+3. Skip if value is empty
+4. Check label against exact matches (priority order)
+5. Only fill field if currently empty
+6. Move to next row
+
+Result: Each field gets the correct data!
+
+================================================================================
+TESTING
+================================================================================
+
+Run:
+  python test_full_automation.py
+
+Expected:
+  ✅ CNR in CNR field (not in case number)
+  ✅ Petitioner in petitioner field (not in respondent)
+  ✅ Court name in court_name (not in judge)
+  ✅ All data in correct sections
+
+Console Output:
+  📊 Parsing case details...
+  ✅ Extracted 15 fields
+  ✅ Case data extracted successfully!
+
+================================================================================
+SUMMARY
+================================================================================
+
+Fixed:
+✅ Exact label matching
+✅ Priority order
+✅ Duplicate prevention
+✅ Empty value handling
+✅ Specific before general
+
+Result:
+✅ Data in correct fields
+✅ No misclassification
+✅ Accurate parsing
+✅ Complete information
+
+Your scraper now puts data in the RIGHT fields! 🎯
+================================================================================
