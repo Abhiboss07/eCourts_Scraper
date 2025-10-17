@@ -9,7 +9,7 @@ if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
 from flask import Flask, render_template, request, jsonify, session, send_file, make_response
-from scraper import ECourtsScraper
+from scraper_playwright_optimized import ECourtsScraper
 import json
 import os
 import io
@@ -47,8 +47,8 @@ def search_cnr():
         if len(cnr) != 16:
             return jsonify({'error': 'CNR must be 16 characters'}), 400
         
-        # Initialize scraper with automatic CAPTCHA solving enabled
-        scraper = ECourtsScraper(headless=False, auto_captcha=True)
+        # Initialize scraper with automatic CAPTCHA solving enabled (headless for speed)
+        scraper = ECourtsScraper(headless=True, auto_captcha=True)
         
         try:
             # Search - CAPTCHA will be solved automatically!
@@ -90,8 +90,8 @@ def search_case():
         if not all([state_code, dist_code, case_type, case_no, case_year]):
             return jsonify({'error': 'All fields are required'}), 400
         
-        # Initialize scraper with automatic CAPTCHA solving enabled
-        scraper = ECourtsScraper(headless=False, auto_captcha=True)
+        # Initialize scraper with automatic CAPTCHA solving enabled (headless for speed)
+        scraper = ECourtsScraper(headless=True, auto_captcha=True)
         
         try:
             # Search - CAPTCHA will be solved automatically!
