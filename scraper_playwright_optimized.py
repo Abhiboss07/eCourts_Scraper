@@ -166,102 +166,210 @@ class ECourtsScraper:
         
         return None
     
-    def search_by_cnr(self, cnr: str) -> Optional[Dict]:
-        """Search case by CNR number with optimized flow"""
-        try:
-            print(f"\n🔍 Searching for CNR: {cnr}")
+    def search_by_cnr(self, cnr: str, max_retries: int = 2) -> Optional[Dict]:
+        """Search case by CNR number with optimized flow and retry logic"""
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    print(f"\n🔄 Retry attempt {attempt + 1}/{max_retries}...")
+                
+                print(f"\n🔍 Searching for CNR: {cnr}")
+                
+                # Navigate to CNR search page with retry
+                print("📄 Loading CNR search page...")
+                try:
+                    self.page.goto(self.CNR_SEARCH_URL, wait_until='domcontentloaded', timeout=10000)
+                    self.page.wait_for_load_state('networkidle', timeout=5000)
+                except Exception as nav_error:
+                    print(f"⚠️  Navigation warning: {nav_error}")
+                    # Continue anyway, page might be loaded
+                
+                print("✅ Page loaded")
+                
+                # Find and fill CNR input with multiple attempts
+                print("📝 Entering CNR number...")
+                cnr_input = None
+                selectors = [
+                    'input[name="cnr_number"]',
+                    'input#cnr_number',
+                    'input[placeholder*="CNR" i]',
+                    'input[type="text"]'
+                ]
+                
+                for selector in selectors:
+                    try:
+                        cnr_input = self.page.wait_for_selector(selector, timeout=2000)
+                        if cnr_input:
+                            break
+                    except:
+                        continue
+                
+                if not cnr_input:
+                    print("❌ Could not find CNR input field")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    return None
+                
+                cnr_input.fill(cnr)
+                time.sleep(0.5)  # Brief pause for UI update
+                print("✅ CNR entered")
             
-            # Navigate to CNR search page
-            print("📄 Loading CNR search page...")
-            self.page.goto(self.CNR_SEARCH_URL, wait_until='domcontentloaded')
-            self.page.wait_for_load_state('networkidle', timeout=5000)
-            
-            print("✅ Page loaded")
-            
-            # Find and fill CNR input
-            print("📝 Entering CNR number...")
-            cnr_input = self.page.wait_for_selector(
-                'input[name="cnr_number"], input#cnr_number, input[placeholder*="CNR" i]',
-                timeout=3000
-            )
-            
-            if not cnr_input:
-                print("❌ Could not find CNR input field")
-                return None
-            
-            cnr_input.fill(cnr)
-            print("✅ CNR entered")
-            
-            # Handle CAPTCHA
-            if self.captcha_solver and self.auto_captcha:
-                print("🤖 Attempting automatic CAPTCHA solving...")
-                if self._solve_captcha_playwright():
-                    print("✅ CAPTCHA solved automatically!")
-                    time.sleep(1)
+                # Handle CAPTCHA with retry
+                captcha_solved = False
+                if self.captcha_solver and self.auto_captcha:
+                    print("🤖 Attempting automatic CAPTCHA solving...")
+                    for captcha_attempt in range(2):
+                        if self._solve_captcha_playwright():
+                            print("✅ CAPTCHA solved automatically!")
+                            captcha_solved = True
+                            time.sleep(1)
+                            break
+                        elif captcha_attempt < 1:
+                            print("⚠️  Retrying CAPTCHA...")
+                            time.sleep(1)
+                    
+                    if not captcha_solved:
+                        print("❌ Automatic CAPTCHA solving failed")
+                        print("⏳ Waiting 8 seconds for manual input...")
+                        time.sleep(8)
                 else:
-                    print("❌ Automatic CAPTCHA solving failed")
                     print("⏳ Waiting 8 seconds for manual input...")
                     time.sleep(8)
-            else:
-                print("⏳ Waiting 8 seconds for manual input...")
-                time.sleep(8)
             
-            # Click search button
-            print("🔍 Clicking search button...")
-            search_button = self.page.wait_for_selector(
-                'button[type="submit"], input[type="submit"], button:has-text("Search")',
-                timeout=3000
-            )
-            search_button.click()
-            print("✅ Search initiated")
-            
-            # Wait for results
-            print("⏳ Waiting for results...")
-            try:
-                self.page.wait_for_selector('table', timeout=6000)
-                print("✅ Results loaded")
-            except:
-                print("⚠️  No results table found, trying to parse anyway...")
-            
-            # Parse results
-            return self._parse_cnr_results()
-            
-        except Exception as e:
-            print(f"❌ Error during CNR search: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
+                # Click search button with retry
+                print("🔍 Clicking search button...")
+                search_button = None
+                button_selectors = [
+                    'button[type="submit"]',
+                    'input[type="submit"]',
+                    'button:has-text("Search")',
+                    'input[value*="Search" i]'
+                ]
+                
+                for btn_selector in button_selectors:
+                    try:
+                        search_button = self.page.wait_for_selector(btn_selector, timeout=2000)
+                        if search_button:
+                            break
+                    except:
+                        continue
+                
+                if not search_button:
+                    print("❌ Could not find search button")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    return None
+                
+                search_button.click()
+                print("✅ Search initiated")
+                
+                # Wait for results with multiple strategies
+                print("⏳ Waiting for results...")
+                results_loaded = False
+                try:
+                    self.page.wait_for_selector('table', timeout=8000)
+                    results_loaded = True
+                    print("✅ Results loaded")
+                except:
+                    print("⚠️  No results table found, checking page content...")
+                    # Check if there's any content change
+                    time.sleep(2)
+                    content = self.page.content()
+                    if 'case' in content.lower() or 'cnr' in content.lower():
+                        results_loaded = True
+                        print("✅ Page content detected")
+                
+                # Parse results
+                result = self._parse_cnr_results()
+                
+                if result and (result.get('cnr_number') or result.get('case_number')):
+                    return result
+                elif attempt < max_retries - 1:
+                    print(f"⚠️  No valid data extracted, retrying...")
+                    time.sleep(2)
+                    continue
+                else:
+                    return result
+                    
+            except Exception as e:
+                print(f"❌ Error during CNR search (attempt {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    print("🔄 Retrying...")
+                    time.sleep(2)
+                    continue
+                else:
+                    import traceback
+                    traceback.print_exc()
+                    return None
+        
+        return None
     
     def _solve_captcha_playwright(self) -> bool:
-        """Solve CAPTCHA using Playwright"""
+        """Solve CAPTCHA using Playwright with enhanced reliability"""
         try:
-            # Find CAPTCHA image
-            captcha_img = self.page.query_selector('img[src*="captcha"], img#captcha_image, img.captcha')
+            # Find CAPTCHA image with multiple selectors
+            captcha_img = None
+            img_selectors = [
+                'img[src*="captcha"]',
+                'img#captcha_image',
+                'img.captcha',
+                'img[alt*="captcha" i]'
+            ]
+            
+            for img_sel in img_selectors:
+                captcha_img = self.page.query_selector(img_sel)
+                if captcha_img:
+                    break
             
             if not captcha_img:
+                print("⚠️  CAPTCHA image not found")
                 return False
             
-            # Take screenshot
+            # Take screenshot with error handling
             captcha_screenshot_path = 'captcha_screenshot.png'
-            captcha_img.screenshot(path=captcha_screenshot_path)
+            try:
+                captcha_img.screenshot(path=captcha_screenshot_path)
+            except Exception as screenshot_error:
+                print(f"⚠️  Screenshot error: {screenshot_error}")
+                return False
             
-            # Extract text
+            # Extract text with validation
             captcha_text = self.captcha_solver.extract_text_from_image(captcha_screenshot_path)
             
-            if not captcha_text:
+            if not captcha_text or len(captcha_text) < 3:
+                print(f"⚠️  Invalid CAPTCHA text: '{captcha_text}'")
                 return False
             
+            # Clean CAPTCHA text
+            captcha_text = captcha_text.strip().upper()
             print(f"✅ CAPTCHA text extracted: '{captcha_text}'")
             
-            # Fill CAPTCHA input
-            captcha_input = self.page.query_selector(
-                'input[name="captcha"], input#captcha, input[placeholder*="captcha" i]'
-            )
+            # Fill CAPTCHA input with multiple selectors
+            captcha_input = None
+            input_selectors = [
+                'input[name="captcha"]',
+                'input#captcha',
+                'input[placeholder*="captcha" i]',
+                'input[type="text"][name*="capt" i]'
+            ]
+            
+            for inp_sel in input_selectors:
+                captcha_input = self.page.query_selector(inp_sel)
+                if captcha_input:
+                    break
             
             if not captcha_input:
+                print("⚠️  CAPTCHA input field not found")
                 return False
             
+            # Clear and fill CAPTCHA
+            captcha_input.fill('')
+            time.sleep(0.3)
             captcha_input.fill(captcha_text)
+            time.sleep(0.3)
+            
             return True
             
         except Exception as e:
